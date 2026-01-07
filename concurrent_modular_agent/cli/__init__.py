@@ -22,7 +22,7 @@ def run(project_dir):
 """
 Backend commands
 """
-from .. import backend as coma_backend
+from .. import backend as cma_backend
 
 @cli.group()
 def backend():
@@ -32,18 +32,18 @@ def backend():
 @backend.command()
 def start():
     """Start the backend service"""
-    coma_backend.start()
+    cma_backend.start()
 
 @backend.command()
 def stop():
     """Stop the backend service"""
-    coma_backend.stop()
+    cma_backend.stop()
 
 @backend.command()
 def restart():
     """Restart the backend service"""
-    coma_backend.stop()
-    coma_backend.start()
+    cma_backend.stop()
+    cma_backend.start()
 
 
 """

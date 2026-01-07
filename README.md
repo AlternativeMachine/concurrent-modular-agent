@@ -5,7 +5,7 @@
 CoMA is designed to simplify the development of agents that collaborate in a modular and concurrent fashion. It draws inspiration from subsumption architecture, asynchronous message passing in concurrent programming, the global workspace model, and the core software design principles of modularity and reusability.
 
 ## Explore the concepts
-For a detailed guide on the framework, please refer to our [paper](https://www.google.com). 
+For a detailed guide on the framework, please refer to our [paper](https://arxiv.org/abs/2508.19042). 
 
 ### Core ideas
 - **Modularity**: The framework follows a modular design that enables developers to create and integrate various independent modules easily. Each module can be developed, tested, and reused across multiple projects.

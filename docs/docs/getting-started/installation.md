@@ -2,15 +2,15 @@
 
 ## Prerequisites
 
-Before installing CoMA, ensure you have the following prerequisites:
+Before installing CMA, ensure you have the following prerequisites:
 
 * **Python 3.12 or later**
 
-    CoMA uses multiprocessing and asyncio, which are fully supported in Python 3.12 and later versions.
+    CMA uses multiprocessing and asyncio, which are fully supported in Python 3.12 and later versions.
 
 * **Docker**
 
-    CoMA uses Docker to run modules (specifically, MQTT for messaging and ChromaDB for vector storage). Ensure you have Docker installed and running on your machine. Please refer to the [Docker installation guide](https://docs.docker.com/get-docker/) for instructions.
+    CMA uses Docker to run modules (specifically, MQTT for messaging and ChromaDB for vector storage). Ensure you have Docker installed and running on your machine. Please refer to the [Docker installation guide](https://docs.docker.com/get-docker/) for instructions.
 
 ## Setup
 
@@ -71,7 +71,7 @@ If tests fail, you will see output indicating which tests failed or encountered 
 
 ## Next Steps
 
-Now you're ready to start building your agent systems with CoMA! Continue to the next section to learn how to create your first project.
+Now you're ready to start building your agent systems with CMA! Continue to the next section to learn how to create your first project.
 
 <div style="text-align: center; margin: 2rem 0;">
     <a href="../creating-a-new-project" class="indigo-button">

@@ -1,19 +1,19 @@
 import time
-from concurrent_modular_agent import Agent, StateClient, MessageClient
+from concurrent_modular_agent import AgentInterface, Agent
 
-def sender(state:StateClient, message:MessageClient):
+def sender(agent:AgentInterface):
     i = 0
     while True:
-        m = f'hello message {i}'
-        print(f'sender: send message {m}')
-        message.send("receiver", m)
+        m = f'hello {i}'
+        agent.log(f'send message "{m}"')
+        agent.message.send("receiver", m)
         i += 1
         time.sleep(1)
 
-def receiver(state:StateClient, message:MessageClient):
+def receiver(agent:AgentInterface):
     while True:
-        m = message.receive()
-        print(f'receiver: received message: {m}')
+        m = agent.message.receive()
+        agent.log(f'received message: "{m}"')
     
 agent = Agent('myagent')
 agent.add_module("sender", sender)

@@ -17,5 +17,5 @@ services:
         - 8000:8000
       restart: always
       volumes:
-        - ~/.coma/data:/data
+        - ~/.cma/data:/data
       

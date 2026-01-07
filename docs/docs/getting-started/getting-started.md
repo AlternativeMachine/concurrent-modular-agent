@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks you through the essential steps to get started with CoMA: installation, project setup, module creation, module connections, and running your agent.
+This guide walks you through the essential steps to get started with CMA: installation, project setup, module creation, module connections, and running your agent.
 
 ## Table of Contents
 

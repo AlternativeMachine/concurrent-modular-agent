@@ -13,9 +13,9 @@ my_project/
     ├── chat.py
     └── memory_organizer.py
 ```
-If you have skipped the previous steps, you can go to `examples/coma_interface` directory.
+If you have skipped the previous steps, you can go to `examples/cma_interface` directory.
 
-Also, Docker should be running on your machine, as CoMA uses Docker to run the backend services.
+Also, Docker should be running on your machine, as CMA uses Docker to run the backend services.
 ```shell
 $ coma backend start
 ```
@@ -38,10 +38,10 @@ You can now type a message and see how the agent responds.
 ```console
 User: Hi
 ChatBot: Hey again! What's new with you?
-User: Can I call you CoMA agent?
-ChatBot: Sure, you can call me CoMA agent if you like! It has an intriguing ring to it. What's next on your list?
+User: Can I call you CMA agent?
+ChatBot: Sure, you can call me CMA agent if you like! It has an intriguing ring to it. What's next on your list?
 User: What is your name?
-ChatBot: I don't really have a name, but you can call me whatever you like! CoMA agent, perhaps? Or maybe something else that suits your fancy.
+ChatBot: I don't really have a name, but you can call me whatever you like! CMA agent, perhaps? Or maybe something else that suits your fancy.
 ```
 
 As you can see, the agent remembers the conversation history and responds accordingly. Recall that the user input is retrieved from the memory by the `chat` module, not sent directly to the `chat` module, but still the agent can respond to the user input in a natural way. This means memory is working properly. 

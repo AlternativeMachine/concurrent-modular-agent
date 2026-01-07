@@ -5,6 +5,7 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "concurrent_modular_agent"
 authors = [{name = "maru-n", email = "norihiro.maruyama@gmail.com"}]
+requires-python = ">=3.13"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
@@ -15,7 +16,9 @@ dependencies = [
     "loguru",
     "openai",
     "lark",
-    "watchdog"
+    "watchdog",
+    "opencv-python",
+    "sentence-transformers",
 ]
 
 [project.optional-dependencies]
@@ -24,7 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-coma = "concurrent_modular_agent.cli:main"
+cma = "concurrent_modular_agent.cli:main"
 
 # pyproject.toml
 [tool.pytest.ini_options]

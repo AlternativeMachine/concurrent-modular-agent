@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import warnings
 import datetime
 from .state import State
-
+from .custom_embedder import CustomEmbeddingFunction, DummyEmbeddingFunction
 
 def _convert_ndarrays_to_lists(data):
     # embeddingsをlistに変換
@@ -17,12 +17,29 @@ def _convert_ndarrays_to_lists(data):
 
 
 class StateClient():
-    def __init__(self, agent_name, module_name:str=None):
+    def __init__(self, agent_name, module_name:str=None, embedder:str="default", embedding_custom_function:chromadb.EmbeddingFunction=None):
         self._chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
-        self._embedding_function = embedding_functions.OpenAIEmbeddingFunction(
-            api_key_env_var="OPENAI_API_KEY",
-            model_name="text-embedding-3-small"
-        )
+        if embedder == "default":
+            warnings.warn("\033[91mThe 'default' embedder is no longer OpenAI embedder. Please specify 'openai' or 'gemma' for using predefined embedders, or 'custom' to use embedding_custom_function.\033[0m", DeprecationWarning)
+            self._embedding_function = embedding_functions.DefaultEmbeddingFunction()
+            pass
+        elif embedder == "openai":
+            self._embedding_function = embedding_functions.OpenAIEmbeddingFunction(
+                api_key_env_var="OPENAI_API_KEY",
+                model_name="text-embedding-3-small"
+            )
+        elif embedder == "gemma":
+            self._embedding_function = CustomEmbeddingFunction(
+                model_id="google/embeddinggemma-300M",
+                device="cpu",
+                truncate_dim=128
+            )
+        elif embedder == "none":
+            self._embedding_function = DummyEmbeddingFunction()
+        else:
+            if embedding_custom_function is None:
+                raise ValueError("When embedder_option is 'custom', embedding_custom_function must be provided.")
+            self._embedding_function = embedding_custom_function
         self._chromadb_collection = self._chromadb_client.get_or_create_collection(
             self._convert_agent_name_2_collection_name(agent_name),
             embedding_function=self._embedding_function
@@ -58,15 +75,48 @@ class StateClient():
         if metadata is not None:
             for m in metadatas:
                 m.update(metadata)
-        self._chromadb_collection.add(ids=ids, documents=states, metadatas=metadatas)
+        try:
+            self._chromadb_collection.add(ids=ids, documents=states, metadatas=metadatas)
+        except Exception as e:
+            print(f"Error adding states: {e}")
 
     def get(self, max_count:int=None, metadata:dict=None, reverse:bool=False):
+        if metadata is None:
+            data = self._chromadb_collection.get(include=['metadatas'])
+        else:
+            data = self._chromadb_collection.get(include=['metadatas'], where=metadata)
+        ids = np.array(data['ids'])
+        if len(ids) == 0:
+            return State(
+                ids=[],
+                texts=[],
+                vector=[],
+                timestamps=[],
+                metadata=[]
+            )
+        timestamps = [d['timestamp'] for d in data['metadatas']]
+        ids = ids[np.argsort(timestamps, kind='stable')]
+        if not reverse:
+            ids = ids[::-1]
+        if max_count is not None and max_count > 0:
+            ids = ids[:max_count]
+        data = self._chromadb_collection.get(ids=ids.tolist(), include=['embeddings', 'documents', 'metadatas'])
+        state = self._convert_chromadb_data_to_state(data)
+        index = np.argsort(state.timestamps, kind='stable')[::-1]
+        state = state[index]
+        if reverse:
+            state = state[::-1]
+        if max_count is not None and max_count > 0:
+            state = state[:max_count]
+        return state
+
+    def get_legacy(self, max_count:int=None, metadata:dict=None, reverse:bool=False):
         if metadata is None:
             data = self._chromadb_collection.get(include=['embeddings', 'documents', 'metadatas'])
         else:
             data = self._chromadb_collection.get(include=['embeddings', 'documents', 'metadatas'], where=metadata)
         state = self._convert_chromadb_data_to_state(data)
-        index = np.argsort(state.timestamps)[::-1]
+        index = np.argsort(state.timestamps, kind='stable')[::-1]
         state = state[index]
         if reverse:
             state = state[::-1]
@@ -104,8 +154,13 @@ class StateClient():
         else:
             return state
 
-    def delete(self, id:str):
-        raise NotImplementedError("The delete method is not implemented yet.")
+    def delete(self, ids: str | list[str]):
+        if isinstance(ids, str):
+            ids = [ids]
+        try:
+            self._chromadb_collection.delete(ids=ids)
+        except Exception as e:
+            print(f"Error deleting ids {ids}: {e}")
 
     def count(self):
         n = self._chromadb_collection.count()

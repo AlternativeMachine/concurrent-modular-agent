@@ -1,17 +1,17 @@
 from openai import OpenAI
-from concurrent_modular_agent import Agent, StateClient, MessageClient
+from concurrent_modular_agent import Agent, AgentInterface
 
 # This example is still a work in progress and not yet complete.
 
-def chat(state:StateClient, message:MessageClient):
+def chat(agent:AgentInterface):
     openai_client = OpenAI()
     while True:
-        m = message.receive()
+        m = agent.message.receive()
 
         messages = [
             {"role": "developer", "content": "あなたは日本語で話すチャットボットです。"},
         ]
-        for s in state.latest().texts[::-1]:
+        for s in agent.state.latest().texts[::-1]:
             if s.startswith("user_message:"):
                 messages.append({"role": "user", "content": s[len("user_message:"):]})
             elif s.startswith("assistant_message:"):
@@ -23,9 +23,9 @@ def chat(state:StateClient, message:MessageClient):
         )
         output_message = completion.choices[0].message.content
         print(f'ChatBot: {output_message}')
-        state.add(f'assistant_message:{output_message}')
+        agent.state.add(f'assistant_message:{output_message}')
 
-        message.send("main", 'finish')  # send signal to main thread for next message
+        agent.message.send("main", 'finish')  # send signal to main thread for next message
     
     
 agent = Agent('chat_agent')

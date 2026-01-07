@@ -1,8 +1,8 @@
 # 2. Creating a New Project
 
-CoMA is designed with a project-oriented approach, where you create modules and assemble them into agents within a project. You can choose between two project styles:
+CMA is designed with a project-oriented approach, where you create modules and assemble them into agents within a project. You can choose between two project styles:
 
-1. **CoMA Interface Project**: Write module definitions and run them as a single agent using the `coma run` command. This is the simplest way to use CoMA.
+1. **CMA Interface Project**: Write module definitions and run them as a single agent using the `coma run` command. This is the simplest way to use CMA.
 
 2. **Python Interface Project**: Write module and agent definitions and run multiple agents using the `python` command. This is the most flexible approach.
 
@@ -10,9 +10,9 @@ CoMA is designed with a project-oriented approach, where you create modules and 
 
 Regardless of the project style, you create a new project by simply making a directory.
 
-### CoMA Interface Project Structure
+### CMA Interface Project Structure
 
-For **CoMA Interface Projects**, the directory contains agent subdirectories, each storing the module definitions that comprise that agent:
+For **CMA Interface Projects**, the directory contains agent subdirectories, each storing the module definitions that comprise that agent:
 
 ```
 sample_project/    # Project directory
@@ -41,15 +41,15 @@ sample_project/ # Project directory
 
 ## Getting Started
 
-We'll begin with the **CoMA Interface Project** style, which is simpler and more straightforward for beginners. If you're already familiar with Python and want more flexibility, you can skip ahead to learn about the **Python Interface Project** style.
+We'll begin with the **CMA Interface Project** style, which is simpler and more straightforward for beginners. If you're already familiar with Python and want more flexibility, you can skip ahead to learn about the **Python Interface Project** style.
 
 ## Next Steps
 
-Let's create your first CoMA project and start building modules!
+Let's create your first CMA project and start building modules!
 
 <div style="text-align: center; margin: 2rem 0;">
     <a href="../creating-modules" class="indigo-button">
-        🚀 Creating Modules (CoMA Interface)
+        🚀 Creating Modules (CMA Interface)
     </a>
 </div>
 

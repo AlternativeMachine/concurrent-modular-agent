@@ -20,9 +20,9 @@
 
 Version: 0.0.0-dev
 
-Concurrent Modular Agent (CoMA) is a framework for building modular agents that can work concurrently. It allows developers to create agents that can perform multiple things simultaneously as concurrent modules. This makes the way of building agents a bit different from the traditional way of building agents as workflows. 
+Concurrent Modular Agent (CMA) is a framework for building modular agents that can work concurrently. It allows developers to create agents that can perform multiple things simultaneously as concurrent modules. This makes the way of building agents a bit different from the traditional way of building agents as workflows. 
 
-To get started with CoMA, you can follow the steps in [Getting Started](./getting-started/getting-started.md).
+To get started with CMA, you can follow the steps in [Getting Started](./getting-started/getting-started.md).
 
 <!-- ## Project layout
 

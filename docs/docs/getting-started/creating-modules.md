@@ -1,8 +1,8 @@
-# 3. Creating Modules (CoMA Interface)
+# 3. Creating Modules (CMA Interface)
 
 ## Building Your First Modules
 
-In this section, we'll create three simple modules that demonstrate the core concepts of CoMA modules. These modules will work together to build a simple chat application that responds to user input.
+In this section, we'll create three simple modules that demonstrate the core concepts of CMA modules. These modules will work together to build a simple chat application that responds to user input.
 
 We'll create the following modules:
 
@@ -10,7 +10,7 @@ We'll create the following modules:
 2. **`chat`**: Receives messages from the `user_input` module and responds to the user
 3. **`memory_organizer`**: Organizes the agent's memory in the background
 
-![Overview of a simple CoMA agent](../img/getting-started-coma-chat-agent.png)
+![Overview of a simple CMA agent](../img/getting-started-coma-chat-agent.png)
 
 ## Setting Up Your Project
 
@@ -245,7 +245,7 @@ The `memory_organizer` module runs concurrently with the other modules. While `u
 
 ## Next Steps
 
-Now that you've created your three modules, you're ready to run your first CoMA agent! Continue to the next section to learn how to execute your agent and see it in action.
+Now that you've created your three modules, you're ready to run your first CMA agent! Continue to the next section to learn how to execute your agent and see it in action.
 
 
 <div style="text-align: center; margin: 2rem 0;">
