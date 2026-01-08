@@ -3,7 +3,7 @@ name: Deploy MkDocs to GitHub Pages
 on:
   push:
     branches:
-      - dev_doc
+      -　main
     paths:
       - 'docs/**'          # docsフォルダの変更時のみ
       - 'mkdocs.yml'       # 設定ファイルの変更時のみ
