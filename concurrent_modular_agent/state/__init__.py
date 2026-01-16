@@ -1,2 +1,3 @@
-from .client import StateClient, MemoryManager
+from .client import StateClient
+from .memory_manager import MemoryManager
 from .state import State
