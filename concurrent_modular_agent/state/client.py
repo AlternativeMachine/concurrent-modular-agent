@@ -1,24 +1,20 @@
-import os, datetime, uuid, pickle, json
+import datetime, uuid, pickle, json, warnings, datetime
 import numpy as np
-from loguru import logger
 import chromadb
 import chromadb.utils.embedding_functions as embedding_functions
-from dataclasses import dataclass
-import warnings
-import datetime
 from .state import State
+from .utils import _get_client, _convert_ndarrays_to_lists, _convert_chromadb_data_to_state
 from .custom_embedder import CustomEmbeddingFunction, DummyEmbeddingFunction
 
-def _convert_ndarrays_to_lists(data):
-    # embeddingsをlistに変換
-    if "embeddings" in data and data["embeddings"] is not None:
-        data["embeddings"] = [e.tolist() if isinstance(e, np.ndarray) else e for e in data["embeddings"]]
-    return data
-
-
+# Todo: module_name引数は必須にして、vector storeのmetadataにmodule_nameを保存するようにする
 class StateClient():
-    def __init__(self, agent_name, module_name:str=None, embedder:str="default", embedding_custom_function:chromadb.EmbeddingFunction=None):
-        self._chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
+    def __init__(self, agent_name, 
+                 module_name:str=None,
+                 embedder:str="default", 
+                 embedding_custom_function:chromadb.EmbeddingFunction=None, 
+                 data_dir:str=None):
+        # self._chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
+        self._chromadb_client = _get_client(data_dir)
         if embedder == "default":
             warnings.warn("\033[91mThe 'default' embedder is no longer OpenAI embedder. Please specify 'openai' or 'gemma' for using predefined embedders, or 'custom' to use embedding_custom_function.\033[0m", DeprecationWarning)
             self._embedding_function = embedding_functions.DefaultEmbeddingFunction()
@@ -101,7 +97,7 @@ class StateClient():
         if max_count is not None and max_count > 0:
             ids = ids[:max_count]
         data = self._chromadb_collection.get(ids=ids.tolist(), include=['embeddings', 'documents', 'metadatas'])
-        state = self._convert_chromadb_data_to_state(data)
+        state = _convert_chromadb_data_to_state(data)
         index = np.argsort(state.timestamps, kind='stable')[::-1]
         state = state[index]
         if reverse:
@@ -115,7 +111,7 @@ class StateClient():
             data = self._chromadb_collection.get(include=['embeddings', 'documents', 'metadatas'])
         else:
             data = self._chromadb_collection.get(include=['embeddings', 'documents', 'metadatas'], where=metadata)
-        state = self._convert_chromadb_data_to_state(data)
+        state = _convert_chromadb_data_to_state(data)
         index = np.argsort(state.timestamps, kind='stable')[::-1]
         state = state[index]
         if reverse:
@@ -173,27 +169,6 @@ class StateClient():
             collection_name,
             embedding_function=self._embedding_function
         )
-
-    @staticmethod
-    def _convert_chromadb_data_to_state(data):
-        ids = data['ids']
-        texts = data['documents']
-        vector = data['embeddings']
-        metadata = data['metadatas']
-        timestamps = []
-        metadata = []
-        for m in data['metadatas']:
-            timestamps.append(m['timestamp'])
-            m.pop('timestamp')
-            metadata.append(m)
-        state = State(
-            ids=ids,
-            texts=texts,
-            vector=vector,
-            timestamps=timestamps,
-            metadata=metadata
-        )
-        return state
     
     def latest(self, max_count:int=10):
         warnings.warn("The 'latest' method is deprecated, use 'get' method instead.", DeprecationWarning)
@@ -203,7 +178,7 @@ class StateClient():
         warnings.warn("The 'retrieve' method is deprecated, use 'query' method instead.", DeprecationWarning)
         return self.query(query_text=query_text, max_count=max_count, metadata=metadata)
 
-    def backup(self, file_path:str):
+    def dump(self, file_path:str):
         all_docs = self._chromadb_collection.get(include=["metadatas", "documents", "embeddings"])
 
         if file_path.endswith(".pkl") or file_path.endswith(".pickle"):
@@ -218,24 +193,3 @@ class StateClient():
                 json.dump(all_docs, f, ensure_ascii=False, indent=2)        
         else:
             raise ValueError("Unsupported file format. Use .pkl, .pickle, or .json.")
-
-
-    @staticmethod
-    def get_all_names():
-        chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
-        collections = chromadb_client.list_collections()
-        agent_memory_list = []
-        for collection in collections:
-            memory_name = StateClient._convert_collection_name_2_agent_name(collection.name)
-            agent_memory_list.append(memory_name)
-        return agent_memory_list
-
-    @staticmethod
-    def delete_by_name(name):
-        chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
-        collection_name = StateClient._convert_agent_name_2_collection_name(name)
-        try:
-            chromadb_client.delete_collection(collection_name)
-        except chromadb.errors.NotFoundError:
-            raise ValueError(f"Agent memory with the name '{name}' does not exist.")
-        
