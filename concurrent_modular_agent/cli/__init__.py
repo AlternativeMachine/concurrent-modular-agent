@@ -49,39 +49,63 @@ def restart():
 """
 Memory commands
 """    
-from ..state import StateClient
+from ..state import MemoryManager
+import os
 
 @cli.group()
-def memory():
+@click.option(
+    "-d", "--directory",
+    default=None,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    help="Specify memory directory which includes chroma.sqlite3",
+)
+@click.pass_context
+def memory(ctx, directory):
     """Memory management commands"""
-    pass
+    ctx.obj = MemoryManager(directory)
 
 @memory.command()
-def ls():
-    """List memory names"""
-    memory_list = StateClient.get_all_names()
-    for memory in memory_list:
-        print(memory)
+@click.pass_obj
+def ls(memory_manager: MemoryManager):
+    memory_list = memory_manager.get_all_names()
+    for m in memory_list:
+        click.echo(m)
 
 @memory.command()
-@click.argument('name')
-def rm(name):
+@click.pass_obj
+@click.argument('agent_name')
+def show(memory_manager: MemoryManager, agent_name: str):
+    """Show details of memory with the specified name"""
+    try:
+        state_client = memory_manager.get_state_client(agent_name)
+        states = state_client.get()
+        click.echo(f"Memory details for '{agent_name}':")
+        for state in states:
+            click.echo(f"Timestamp: {state.timestamp}, ID: {state.id}, Text: {state.text}")
+    except ValueError as e:
+        print(e)
+
+@memory.command()
+@click.pass_obj
+@click.argument('agent_name')
+def rm(memory_manager: MemoryManager, agent_name: str):
     """Delete memory with the specified name"""
     try:
-        StateClient.delete_by_name(name)
-        print(f"Memory '{name}' deleted successfully.")
+        if click.confirm(f"Are you sure you want to delete memory '{agent_name}'?"):
+            memory_manager.delete_by_name(agent_name)
+            print(f"Memory '{agent_name}' deleted successfully.")
     except ValueError as e:
         print(e)
         
 @memory.command()
-@click.argument('memory_name')
+@click.pass_obj
+@click.argument('agent_name')
 @click.argument('file_path')
-def backup(memory_name, file_path):
-    """Backup memory to the specified file path"""
+def dump(memory_manager: MemoryManager, agent_name: str, file_path: str):
+    """Dump memory to the specified file path"""
     try:
-        state = StateClient(memory_name)  # Ensure the memory exists
-        state.backup(file_path)
-        print(f"Memory backed up to '{file_path}' successfully.")
+        memory_manager.get_state_client(agent_name).dump(file_path)
+        print(f"Memory dumped to '{file_path}' successfully.")
     except ValueError as e:
         print(e)
 

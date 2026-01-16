@@ -15,10 +15,22 @@ def _convert_ndarrays_to_lists(data):
         data["embeddings"] = [e.tolist() if isinstance(e, np.ndarray) else e for e in data["embeddings"]]
     return data
 
+def _get_client(directory:str=None):
+    if directory is None:
+        chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
+    else:
+        chromadb_client = chromadb.PersistentClient(path=directory)
+    return chromadb_client
 
+# Todo: module_name引数は必須にして、vector storeのmetadataにmodule_nameを保存するようにする
 class StateClient():
-    def __init__(self, agent_name, module_name:str=None, embedder:str="default", embedding_custom_function:chromadb.EmbeddingFunction=None):
-        self._chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
+    def __init__(self, agent_name, 
+                 module_name:str=None,
+                 embedder:str="default", 
+                 embedding_custom_function:chromadb.EmbeddingFunction=None, 
+                 data_dir:str=None):
+        # self._chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
+        self._chromadb_client = _get_client(data_dir)
         if embedder == "default":
             warnings.warn("\033[91mThe 'default' embedder is no longer OpenAI embedder. Please specify 'openai' or 'gemma' for using predefined embedders, or 'custom' to use embedding_custom_function.\033[0m", DeprecationWarning)
             self._embedding_function = embedding_functions.DefaultEmbeddingFunction()
@@ -203,7 +215,7 @@ class StateClient():
         warnings.warn("The 'retrieve' method is deprecated, use 'query' method instead.", DeprecationWarning)
         return self.query(query_text=query_text, max_count=max_count, metadata=metadata)
 
-    def backup(self, file_path:str):
+    def dump(self, file_path:str):
         all_docs = self._chromadb_collection.get(include=["metadatas", "documents", "embeddings"])
 
         if file_path.endswith(".pkl") or file_path.endswith(".pickle"):
@@ -219,23 +231,35 @@ class StateClient():
         else:
             raise ValueError("Unsupported file format. Use .pkl, .pickle, or .json.")
 
+class MemoryManager:
+    def __init__(self, directory:str=None):
+        self._directory = directory
+        self._chromadb_client = _get_client(directory)
+        
+    def get_state_client(self, name, 
+                         module_name:str=None,
+                         embedder:str="default", 
+                         embedding_custom_function:chromadb.EmbeddingFunction=None):
+        return StateClient(
+            agent_name=name,
+            module_name=module_name,
+            embedder=embedder,
+            embedding_custom_function=embedding_custom_function,
+            data_dir=self._directory
+        )
 
-    @staticmethod
-    def get_all_names():
-        chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
-        collections = chromadb_client.list_collections()
+    def get_all_names(self):
+        collections = self._chromadb_client.list_collections()
         agent_memory_list = []
         for collection in collections:
             memory_name = StateClient._convert_collection_name_2_agent_name(collection.name)
             agent_memory_list.append(memory_name)
         return agent_memory_list
 
-    @staticmethod
-    def delete_by_name(name):
-        chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
+    def delete_by_name(self, name):
         collection_name = StateClient._convert_agent_name_2_collection_name(name)
         try:
-            chromadb_client.delete_collection(collection_name)
+            self._chromadb_client.delete_collection(collection_name)
         except chromadb.errors.NotFoundError:
             raise ValueError(f"Agent memory with the name '{name}' does not exist.")
         
