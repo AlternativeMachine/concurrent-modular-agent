@@ -19,6 +19,7 @@ dependencies = [
     "watchdog",
     "opencv-python",
     "sentence-transformers",
+    "fastapi>=0.128.0",
 ]
 
 [project.optional-dependencies]
