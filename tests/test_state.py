@@ -184,3 +184,17 @@ def test_none_embedder():
     assert s[0].text == "state 2"
     assert s[1].metadata["tag"] == "tag1"
     assert s[1].text == "state 1"
+def test_state_get_window_newest_and_reverse():
+    # Regression for the tail-window get(): with a collection larger than
+    # max_count * _GET_WINDOW_FACTOR, bounded get() must still return the
+    # correct newest-N (and reverse=True the oldest-N), not just whatever the
+    # window happened to capture.
+    state = StateClient("test_agent_none", embedder="none")
+    state.clear()
+    N = 60  # > 5 * StateClient._GET_WINDOW_FACTOR
+    for i in range(N):
+        state.add(f"s{i}", timestamp=float(i))
+    s = state.get(max_count=5)
+    assert [x.text for x in s] == ["s59", "s58", "s57", "s56", "s55"]
+    s_rev = state.get(max_count=5, reverse=True)
+    assert [x.text for x in s_rev] == ["s0", "s1", "s2", "s3", "s4"]

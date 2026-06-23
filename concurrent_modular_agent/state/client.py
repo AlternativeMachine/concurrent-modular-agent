@@ -76,33 +76,39 @@ class StateClient():
         except Exception as e:
             print(f"Error adding states: {e}")
 
+    # When a bounded get(max_count=N) is requested, only scan a tail window of
+    # this many times max_count rows instead of the whole collection. States
+    # are appended in time order, so the newest rows live at the end by
+    # insertion order; a few-times-larger window keeps the result correct even
+    # if a handful of rows were inserted slightly out of timestamp order.
+    _GET_WINDOW_FACTOR = 4
+
     def get(self, max_count:int=None, metadata:dict=None, reverse:bool=False):
-        if metadata is None:
-            data = self._chromadb_collection.get(include=['metadatas'])
+        bounded = max_count is not None and max_count > 0
+        if bounded:
+            # Avoid materializing the whole matching history on every call: that
+            # makes process memory grow without bound when get() is called
+            # frequently on a large, ever-growing collection. Only the newest
+            # rows are needed, so scan a small tail window via offset/limit.
+            n_ids = len(self._chromadb_collection.get(where=metadata, include=[])['ids'])
+            window = max_count * self._GET_WINDOW_FACTOR
+            # reverse=True asks for the oldest max_count rows (head of the
+            # collection); otherwise the newest (tail).
+            offset = 0 if reverse else max(0, n_ids - window)
+            data = self._chromadb_collection.get(
+                where=metadata, include=['embeddings', 'documents', 'metadatas'],
+                limit=window, offset=offset)
         else:
-            data = self._chromadb_collection.get(include=['metadatas'], where=metadata)
-        ids = np.array(data['ids'])
-        if len(ids) == 0:
-            return State(
-                ids=[],
-                texts=[],
-                vector=[],
-                timestamps=[],
-                metadata=[]
-            )
-        timestamps = [d['timestamp'] for d in data['metadatas']]
-        ids = ids[np.argsort(timestamps, kind='stable')]
-        if not reverse:
-            ids = ids[::-1]
-        if max_count is not None and max_count > 0:
-            ids = ids[:max_count]
-        data = self._chromadb_collection.get(ids=ids.tolist(), include=['embeddings', 'documents', 'metadatas'])
+            data = self._chromadb_collection.get(
+                where=metadata, include=['embeddings', 'documents', 'metadatas'])
+        if len(data['ids']) == 0:
+            return State(ids=[], texts=[], vector=[], timestamps=[], metadata=[])
         state = _convert_chromadb_data_to_state(data)
         index = np.argsort(state.timestamps, kind='stable')[::-1]
         state = state[index]
         if reverse:
             state = state[::-1]
-        if max_count is not None and max_count > 0:
+        if bounded:
             state = state[:max_count]
         return state
 
