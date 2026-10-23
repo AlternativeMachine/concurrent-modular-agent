@@ -9,10 +9,10 @@ from chromadb import EmbeddingFunction
 This class is intended for the mode where agents are launched via the coma CLI interface.
 """
 class AgentInterface:
-    def __init__(self, agent_name, module_name):
+    def __init__(self, agent_name, module_name, state_embedder="default", embedding_custom_function=None):
         self.agent_name = agent_name
         self.module_name = module_name
-        self.state = StateClient(agent_name, module_name)
+        self.state = StateClient(agent_name, module_name, embedder=state_embedder, embedding_custom_function=embedding_custom_function)
         self.message = MessageClient(agent_name, module_name)
 
         # Generate a color based on agent name and module name
@@ -40,6 +40,8 @@ class Agent():
     def __init__(self, name:str, state_embedder:str="default", embedding_custom_function:EmbeddingFunction=None):
         self.name = name
         self.modules = {}
+        self.state_embedder = state_embedder
+        self.embedding_custom_function = embedding_custom_function
         self.state = StateClient(self.name, 'main', embedder=state_embedder, embedding_custom_function=embedding_custom_function)
         self.message = MessageClient(self.name, 'main')
 
@@ -48,13 +50,13 @@ class Agent():
         self.modules[module_name] = module_function
     
     @staticmethod
-    def _run_module_process(agent_name, module_name, module_function, initialized_bariier):
+    def _run_module_process(agent_name, module_name, module_function, initialized_bariier, state_embedder="default", embedding_custom_function=None):
         if module_function.__code__.co_argcount == 2:
-            state_client = cma.StateClient(agent_name, module_name)
+            state_client = cma.StateClient(agent_name, module_name, embedder=state_embedder, embedding_custom_function=embedding_custom_function)
             message_client = cma.MessageClient(agent_name, module_name)
             args = (state_client, message_client)
         elif module_function.__code__.co_argcount == 1:
-            agent = AgentInterface(agent_name, module_name)
+            agent = AgentInterface(agent_name, module_name, state_embedder, embedding_custom_function)
             args = (agent,)
         else:
             raise TypeError(f"{module_function.__name__} must take 1 (AgentInterface) or 2.  (state_client, message_client) arguments, but got {module_function.__code__.co_argcount} arguments.")
@@ -72,7 +74,7 @@ class Agent():
             process = threading.Thread(
             # process = multiprocessing.Process(
                 target=self._run_module_process, 
-                args=(self.name, module_name, module_func, initialized_bariier))
+                args=(self.name, module_name, module_func, initialized_bariier, self.state_embedder, self.embedding_custom_function))
             
             process.daemon = True
             process.start()
