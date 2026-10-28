@@ -6,36 +6,51 @@ from .state import State
 from .utils import _get_client, _convert_ndarrays_to_lists, _convert_chromadb_data_to_state
 from .custom_embedder import CustomEmbeddingFunction, DummyEmbeddingFunction
 
+
+def _make_embedding_function(embedder:str="default", embedding_custom_function:chromadb.EmbeddingFunction=None):
+    if embedder == "default":
+        warnings.warn("\033[91mThe 'default' embedder is no longer OpenAI embedder. Please specify 'openai' or 'gemma' for using predefined embedders, or 'custom' to use embedding_custom_function.\033[0m", DeprecationWarning)
+        return embedding_functions.DefaultEmbeddingFunction()
+    elif embedder == "openai":
+        return embedding_functions.OpenAIEmbeddingFunction(
+            api_key_env_var="OPENAI_API_KEY",
+            model_name="text-embedding-3-small"
+        )
+    elif embedder == "gemma":
+        return CustomEmbeddingFunction(
+            model_id="google/embeddinggemma-300M",
+            device="cpu",
+            truncate_dim=128
+        )
+    elif embedder == "none":
+        return DummyEmbeddingFunction()
+    else:
+        if embedding_custom_function is None:
+            raise ValueError("When embedder_option is 'custom', embedding_custom_function must be provided.")
+        return embedding_custom_function
+
 # Todo: module_name引数は必須にして、vector storeのmetadataにmodule_nameを保存するようにする
 class StateClient():
+    def __new__(cls, agent_name, module_name:str=None, embedder:str="default",
+                embedding_custom_function:chromadb.EmbeddingFunction=None,
+                data_dir:str=None, backend:str="chroma"):
+        # backend="sqlite" returns a SQLiteStateClient (same API, append-only SQLite log).
+        if cls is StateClient and backend == "sqlite":
+            from .sqlite_client import SQLiteStateClient
+            return super().__new__(SQLiteStateClient)
+        if backend not in ("chroma", "sqlite"):
+            raise ValueError(f"Unknown state backend: {backend!r} (use 'chroma' or 'sqlite')")
+        return super().__new__(cls)
+
     def __init__(self, agent_name, 
                  module_name:str=None,
                  embedder:str="default", 
                  embedding_custom_function:chromadb.EmbeddingFunction=None, 
-                 data_dir:str=None):
+                 data_dir:str=None,
+                 backend:str="chroma"):
         # self._chromadb_client = chromadb.HttpClient(host='localhost', port=8000)
         self._chromadb_client = _get_client(data_dir)
-        if embedder == "default":
-            warnings.warn("\033[91mThe 'default' embedder is no longer OpenAI embedder. Please specify 'openai' or 'gemma' for using predefined embedders, or 'custom' to use embedding_custom_function.\033[0m", DeprecationWarning)
-            self._embedding_function = embedding_functions.DefaultEmbeddingFunction()
-            pass
-        elif embedder == "openai":
-            self._embedding_function = embedding_functions.OpenAIEmbeddingFunction(
-                api_key_env_var="OPENAI_API_KEY",
-                model_name="text-embedding-3-small"
-            )
-        elif embedder == "gemma":
-            self._embedding_function = CustomEmbeddingFunction(
-                model_id="google/embeddinggemma-300M",
-                device="cpu",
-                truncate_dim=128
-            )
-        elif embedder == "none":
-            self._embedding_function = DummyEmbeddingFunction()
-        else:
-            if embedding_custom_function is None:
-                raise ValueError("When embedder_option is 'custom', embedding_custom_function must be provided.")
-            self._embedding_function = embedding_custom_function
+        self._embedding_function = _make_embedding_function(embedder, embedding_custom_function)
         self._chromadb_collection = self._chromadb_client.get_or_create_collection(
             self._convert_agent_name_2_collection_name(agent_name),
             embedding_function=self._embedding_function

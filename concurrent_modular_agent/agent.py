@@ -9,10 +9,12 @@ from chromadb import EmbeddingFunction
 This class is intended for the mode where agents are launched via the coma CLI interface.
 """
 class AgentInterface:
-    def __init__(self, agent_name, module_name, state_embedder="default", embedding_custom_function=None):
+    def __init__(self, agent_name, module_name, state_embedder="default", embedding_custom_function=None,
+                 state_backend="chroma", state_dir=None):
         self.agent_name = agent_name
         self.module_name = module_name
-        self.state = StateClient(agent_name, module_name, embedder=state_embedder, embedding_custom_function=embedding_custom_function)
+        self.state = StateClient(agent_name, module_name, embedder=state_embedder, embedding_custom_function=embedding_custom_function,
+                                 data_dir=state_dir, backend=state_backend)
         self.message = MessageClient(agent_name, module_name)
 
         # Generate a color based on agent name and module name
@@ -37,12 +39,17 @@ class AgentInterface:
 This class is intended for the mode where modules are implemented as Python functions and agents are launched from a Python script.
 """
 class Agent():
-    def __init__(self, name:str, state_embedder:str="default", embedding_custom_function:EmbeddingFunction=None):
+    def __init__(self, name:str, state_embedder:str="default", embedding_custom_function:EmbeddingFunction=None,
+                 state_backend:str="chroma", state_dir:str=None):
+        # state_backend: "chroma" (default) or "sqlite" (append-only SQLite log in state_dir, see state/sqlite_client.py)
         self.name = name
         self.modules = {}
         self.state_embedder = state_embedder
         self.embedding_custom_function = embedding_custom_function
-        self.state = StateClient(self.name, 'main', embedder=state_embedder, embedding_custom_function=embedding_custom_function)
+        self.state_backend = state_backend
+        self.state_dir = state_dir
+        self.state = StateClient(self.name, 'main', embedder=state_embedder, embedding_custom_function=embedding_custom_function,
+                                 data_dir=state_dir, backend=state_backend)
         self.message = MessageClient(self.name, 'main')
 
     def add_module(self, module_name: str, 
@@ -50,13 +57,15 @@ class Agent():
         self.modules[module_name] = module_function
     
     @staticmethod
-    def _run_module_process(agent_name, module_name, module_function, initialized_bariier, state_embedder="default", embedding_custom_function=None):
+    def _run_module_process(agent_name, module_name, module_function, initialized_bariier, state_embedder="default", embedding_custom_function=None,
+                            state_backend="chroma", state_dir=None):
         if module_function.__code__.co_argcount == 2:
-            state_client = cma.StateClient(agent_name, module_name, embedder=state_embedder, embedding_custom_function=embedding_custom_function)
+            state_client = cma.StateClient(agent_name, module_name, embedder=state_embedder, embedding_custom_function=embedding_custom_function,
+                                           data_dir=state_dir, backend=state_backend)
             message_client = cma.MessageClient(agent_name, module_name)
             args = (state_client, message_client)
         elif module_function.__code__.co_argcount == 1:
-            agent = AgentInterface(agent_name, module_name, state_embedder, embedding_custom_function)
+            agent = AgentInterface(agent_name, module_name, state_embedder, embedding_custom_function, state_backend, state_dir)
             args = (agent,)
         else:
             raise TypeError(f"{module_function.__name__} must take 1 (AgentInterface) or 2.  (state_client, message_client) arguments, but got {module_function.__code__.co_argcount} arguments.")
@@ -74,7 +83,8 @@ class Agent():
             process = threading.Thread(
             # process = multiprocessing.Process(
                 target=self._run_module_process, 
-                args=(self.name, module_name, module_func, initialized_bariier, self.state_embedder, self.embedding_custom_function))
+                args=(self.name, module_name, module_func, initialized_bariier, self.state_embedder, self.embedding_custom_function,
+                      self.state_backend, self.state_dir))
             
             process.daemon = True
             process.start()

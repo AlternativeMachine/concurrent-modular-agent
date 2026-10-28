@@ -72,6 +72,16 @@ Run
 $ python -m concurrent_modular_agent.backend start
 ```
 
+### State without the Chroma server (experimental)
+
+State can also be kept in an append-only SQLite file instead of Chroma:
+
+```python
+agent = Agent("myagent", state_embedder="openai", state_backend="sqlite", state_dir="./cma_state")
+```
+
+The API (`add` / `get` / `query` / ...) is the same. `add()` only writes a row; embeddings are computed in batches when `query()` needs them, so writing is fast, works offline, and a failed embedding call does not lose a state. Each state also records the module that wrote it and its insertion order (`get(since_seq=...)` reads only newer states). Metadata filters support equality only. Messages still use MQTT.
+
 ## Examples
 
 There are two modes of running this framework:

@@ -14,10 +14,12 @@ class StateRecord:
     vector: np.ndarray
     timestamp: float
     metadata: dict
+    seq: int = None
+    module: str = None
     
 
 class State:
-    def __init__(self, ids, texts, vector, timestamps, metadata=None):
+    def __init__(self, ids, texts, vector, timestamps, metadata=None, seqs=None, modules=None):
         if len(ids) != len(texts) or len(ids) != len(vector) or len(ids) != len(timestamps):
             raise ValueError("The length of ids, texts, vectors, and timestamps must be the same.")
         if metadata is not None and len(ids) != len(metadata):
@@ -37,6 +39,9 @@ class State:
         self.vector = np.array(vector)  # Ensure vector is a NumPy array
         self.timestamps = timestamps
         self.metadata = metadata
+        # Only the sqlite backend fills these (insertion order and the module that wrote each state).
+        self.seqs = seqs
+        self.modules = modules
     
     def __len__(self):
         return len(self.ids)
@@ -48,7 +53,9 @@ class State:
                 text=self.texts[i],
                 vector=self.vector[i],
                 timestamp=self.timestamps[i],
-                metadata=self.metadata[i]
+                metadata=self.metadata[i],
+                seq=None if self.seqs is None else self.seqs[i],
+                module=None if self.modules is None else self.modules[i],
             )
         elif isinstance(i, (list, tuple, np.ndarray)):  # リスト、タプル、NumPy配列
             indices = np.array(i, dtype=int)  # NumPy配列に変換
@@ -57,7 +64,9 @@ class State:
                 texts=[self.texts[idx] for idx in indices],
                 vector=self.vector[indices],
                 timestamps=[self.timestamps[idx] for idx in indices],
-                metadata=[self.metadata[idx] for idx in indices]
+                metadata=[self.metadata[idx] for idx in indices],
+                seqs=None if self.seqs is None else [self.seqs[idx] for idx in indices],
+                modules=None if self.modules is None else [self.modules[idx] for idx in indices],
             )
         elif isinstance(i, slice):  # スライス
             return State(
@@ -65,7 +74,9 @@ class State:
                 texts=self.texts[i],
                 vector=self.vector[i],
                 timestamps=self.timestamps[i],
-                metadata=self.metadata[i]
+                metadata=self.metadata[i],
+                seqs=None if self.seqs is None else self.seqs[i],
+                modules=None if self.modules is None else self.modules[i],
             )
         else:
             raise TypeError("Indexing must be an integer, list, tuple, NumPy array, or slice.")
